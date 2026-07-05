@@ -34,7 +34,8 @@ async function getAllDTC() {
 
 module.exports = {
     saveDTC,
-    getAllDTC
+    getAllDTC,
+    updateHeartbeat
 };
 
 async function updateHeartbeat(ecuName){
