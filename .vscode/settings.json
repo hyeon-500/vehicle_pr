@@ -10,9 +10,9 @@
             "server": "192.168.0.4",
             "port": 3306,
             "driver": "MySQL",
-            "database": "raspberry_server",
+            "name": "RaspberryPi-MariaDB",
             "username": "lulu_user",
-            "name": "RAS_STM32"
+            "database": "raspberry_server"
         }
     ]
 }
