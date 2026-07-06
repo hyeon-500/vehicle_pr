@@ -1,4 +1,6 @@
-const socket = new WebSocket("ws://192.168.219.105:3000");
+const socket = new WebSocket(
+    `ws://${location.hostname}:3000`
+);
 
 socket.onopen=()=>{
 
