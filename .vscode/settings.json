@@ -7,12 +7,12 @@
             },
             "ssh": "Disabled",
             "previewLimit": 50,
-            "server": "172.30.1.12",
+            "server": "192.168.0.4",
             "port": 3306,
             "driver": "MySQL",
-            "name": "Raspberry MYSQL",
             "database": "raspberry_server",
-            "username": "lulu_user"
+            "username": "lulu_user",
+            "name": "RAS_STM32"
         }
     ]
 }
