@@ -1,68 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>UDS Vehicle Monitoring Dashboard</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
 <body>
 
 <div class="container">
 
     <header>
-        <h2>UDS Diagnostic Dashboard</h2>
+
+        <h1>UDS Vehicle Monitoring Dashboard</h1>
+
     </header>
 
-    <section class="search-area">
+    <main class="dashboard">
 
-        <select id="ecuFilter">
-            <option value="">All ECU</option>
-            <option>ECU1</option>
-            <option>ECU2</option>
-            <option>ECU3</option>
-            <option>ECU4</option>
-        </select>
+        <!-- ================= Vehicle ================= -->
 
-        <select id="otaFilter">
-            <option value="">All OTA</option>
-            <option>ACTIVE</option>
-            <option>UPDATING</option>
-            <option>COMPLETE</option>
-            <option>FAIL</option>
-        </select>
+        <section class="panel">
 
-        <input
-            type="text"
-            id="keyword"
-            placeholder="Search..."
-        >
+            <h2>🚗 Vehicle Dashboard</h2>
 
-        <button id="searchBtn">
-            Search
-        </button>
+            <div class="status-box">
 
-    </section>
+                <h3>Vehicle Status</h3>
 
-    <section class="result-area">
+                <p id="vehicleStatus"></p>
 
-        <table>
+            </div>
 
-            <thead>
+            <div class="status-box">
 
-            <tr>
-                <th>Date</th>
-                <th>ECU</th>
-                <th>Status</th>
-                <th>Message</th>
-            </tr>
+                <h3>Vehicle Control</h3>
 
-            </thead>
+                <table>
 
-            <tbody id="dashboardTable">
+                    <tr>
+                        <td>Risk</td>
+                        <td id="risk"></td>
+                    </tr>
 
-            </tbody>
+                    <tr>
+                        <td>Brake</td>
+                        <td id="brake"></td>
+                    </tr>
 
-        </table>
+                    <tr>
+                        <td>Wiper</td>
+                        <td id="wiper"></td>
+                    </tr>
 
-    </section>
+                    <tr>
+                        <td>LED</td>
+                        <td id="led"></td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+            <div class="status-box">
+
+                <h3>Environment</h3>
+
+                <table>
+
+                    <tr>
+                        <td>Temperature</td>
+                        <td id="temperature"></td>
+                    </tr>
+
+                    <tr>
+                        <td>Humidity</td>
+                        <td id="humidity"></td>
+                    </tr>
+
+                    <tr>
+                        <td>Lux</td>
+                        <td id="lux"></td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+            <div class="status-box">
+
+                <h3>Driving</h3>
+
+                <table>
+
+                    <tr>
+                        <td>Speed</td>
+                        <td id="speed"></td>
+                    </tr>
+
+                    <tr>
+                        <td>Distance</td>
+                        <td id="distance"></td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <!-- ================= UDS ================= -->
+
+        <section class="panel">
+
+            <h2>🩺 UDS Dashboard</h2>
+
+            <div class="status-box">
+
+                <h3>DTC Status</h3>
+
+                <p id="dtcSummary">No DTC</p>
+
+            </div>
+
+            <div class="status-box">
+
+                <h3>DTC List</h3>
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Status</th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="dtcTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="status-box">
+
+                <button id="btnReset">
+                    ECU Reset
+                </button>
+
+                <button id="btnClear">
+                    DTC Clear
+                </button>
+
+            </div>
+
+            <div class="status-box">
+
+                <h3>UDS Communication Log</h3>
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+
+                        <th>Time</th>
+                        <th>Direction</th>
+                        <th>Service</th>
+                        <th>Data</th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="udsLog">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <!-- ================= Heartbeat ================= -->
+
+        <section class="panel">
+
+            <h2>💓 Heartbeat Dashboard</h2>
+
+            <div class="status-box">
+
+                <h3>ECU Connection Status</h3>
+
+                <table>
+
+                    <tr>
+                        <td>ECU1</td>
+                        <td id="ecu1Status"></td>
+                    </tr>
+
+                    <tr>
+                        <td>ECU2</td>
+                        <td id="ecu2Status"></td>
+                    </tr>
+
+                    <tr>
+                        <td>ECU3</td>
+                        <td id="ecu3Status"></td>
+                    </tr>
+
+                    <tr>
+                        <td>ECU4</td>
+                        <td id="ecu4Status"></td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+            <div class="status-box">
+
+                <h3>Recent Heartbeat</h3>
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+
+                        <th>ECU</th>
+                        <th>Status</th>
+                        <th>Time</th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="heartbeatTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
 
 </div>
 
-<link rel="stylesheet" href="css/style.css">
-<script src="js/websocket.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/websocket.js"></script>
 
 </body>
+
+</html>

@@ -1,148 +1,220 @@
-// dashboard.js
-
-const table = document.getElementById("dashboardTable");
-
 /**
- * 현재 시간 반환
- * 형식 : YYYY-MM-DD HH:mm:ss
+ * dashboard.js
+ * UDS Vehicle Monitoring Dashboard
  */
-function getCurrentTime() {
 
-    const now = new Date();
+/* ===============================
+    Vehicle Dashboard
+=============================== */
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+function updateVehicleDashboard(vehicleState) {
 
-    const hour = String(now.getHours()).padStart(2, "0");
-    const minute = String(now.getMinutes()).padStart(2, "0");
-    const second = String(now.getSeconds()).padStart(2, "0");
+    /* Vehicle Status */
+    document.getElementById("vehicleStatus").textContent =
+        vehicleState.ecu3.status;
 
-    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    /* Vehicle Control */
+    document.getElementById("risk").textContent =
+        convertRiskLevel(vehicleState.ecu3.riskLevel);
+
+    document.getElementById("brake").textContent =
+        vehicleState.ecu3.brakeLevel ? "ON" : "OFF";
+
+    document.getElementById("wiper").textContent =
+        vehicleState.ecu3.wiperState ? "ON" : "OFF";
+
+    document.getElementById("led").textContent =
+        vehicleState.ecu3.ledState ? "ON" : "OFF";
+
+    /* Environment */
+
+    document.getElementById("temperature").textContent =
+        `${vehicleState.ecu1.temperature} ℃`;
+
+    document.getElementById("humidity").textContent =
+        `${vehicleState.ecu1.humidity} %`;
+
+    document.getElementById("lux").textContent =
+        `${vehicleState.ecu1.lux} lux`;
+
+    /* Driving */
+
+    document.getElementById("speed").textContent =
+        `${vehicleState.ecu2.speed} km/h`;
+
+    document.getElementById("distance").textContent =
+        `${vehicleState.ecu2.distance} cm`;
 
 }
 
-/**
- * Dashboard 더미 데이터
- */
-const sampleData = [
+/* ===============================
+    UDS Dashboard
+=============================== */
 
-    {
-        date: getCurrentTime(),
-        ecu: "ECU1",
-        status: "ACTIVE",
-        message: "Connected"
-    },
+async function updateUDSDashboard() {
 
-    {
-        date: getCurrentTime(),
-        ecu: "ECU2",
-        status: "ACTIVE",
-        message: "Sensor OK"
-    },
+    try {
 
-    {
-        date: getCurrentTime(),
-        ecu: "ECU3",
-        status: "UPDATING",
-        message: "Downloading..."
-    },
+        const response = await fetch("/api/dtc");
 
-    {
-        date: getCurrentTime(),
-        ecu: "ECU4",
-        status: "ERROR",
-        message: "CAN Timeout"
+        const rows = await response.json();
+
+        const table = document.getElementById("dtcTable");
+
+        table.innerHTML = "";
+
+        if (rows.length === 0) {
+
+            document.getElementById("dtcSummary").textContent =
+                "No DTC";
+
+            table.innerHTML = `
+
+                <tr>
+
+                    <td colspan="3">
+
+                        No DTC
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+        document.getElementById("dtcSummary").textContent =
+            `${rows.length} Active DTC`;
+
+        rows.forEach(item => {
+
+            table.innerHTML += `
+
+                <tr>
+
+                    <td>${item.dtc_code}</td>
+
+                    <td>${item.description}</td>
+
+                    <td>${item.status}</td>
+
+                </tr>
+
+            `;
+
+        });
+
+    }
+    catch (err) {
+
+        console.error("[DTC ERROR]", err);
+
     }
 
-];
+}
 
-/**
- * 테이블 출력
- */
-function loadTable(data) {
+/* ===============================
+    Heartbeat Dashboard
+=============================== */
 
-    table.innerHTML = "";
+async function updateHeartbeatDashboard() {
 
-    data.forEach(item => {
+    try {
 
-        table.innerHTML += `
+        const response =
+            await fetch("/api/heartbeat");
 
-        <tr>
+        const rows =
+            await response.json();
 
-            <td>${item.date}</td>
-            <td>${item.ecu}</td>
-            <td>${item.status}</td>
-            <td>${item.message}</td>
+        const table =
+            document.getElementById("heartbeatTable");
 
-        </tr>
+        table.innerHTML = "";
 
-        `;
+        rows.forEach(item => {
 
-    });
+            table.innerHTML += `
+
+                <tr>
+
+                    <td>ECU${item.ecu_id}</td>
+
+                    <td>${item.status}</td>
+
+                    <td>${item.last_received}</td>
+
+                </tr>
+
+            `;
+
+        });
+
+    }
+    catch (err) {
+
+        console.error("[Heartbeat ERROR]", err);
+
+    }
 
 }
 
-/**
- * 최초 출력
- */
-loadTable(sampleData);
+/* ===============================
+    Risk Level
+=============================== */
 
-/**
- * 검색 버튼
- */
-document
-.getElementById("searchBtn")
-.addEventListener("click", () => {
+function convertRiskLevel(level) {
 
-    const ecu = document.getElementById("ecuFilter").value;
+    switch (level) {
 
-    const keyword = document
-        .getElementById("keyword")
-        .value
-        .toLowerCase();
+        case 0:
+            return "SAFE";
 
-    const result = sampleData.filter(item => {
+        case 1:
+            return "CAUTION";
 
-        return (
+        case 2:
+            return "WARNING";
 
-            (ecu === "" || item.ecu === ecu)
+        case 3:
+            return "DANGER";
 
-            &&
+        default:
+            return level;
 
-            (
+    }
 
-                item.message.toLowerCase().includes(keyword)
+}
 
-                ||
+/* ===============================
+    WebSocket Callback
+=============================== */
 
-                item.status.toLowerCase().includes(keyword)
+function onVehicleStateReceived(vehicleState) {
 
-                ||
+    updateVehicleDashboard(vehicleState);
 
-                item.ecu.toLowerCase().includes(keyword)
+}
 
-            )
+/* ===============================
+    Initial Load
+=============================== */
 
-        );
+updateUDSDashboard();
 
-    });
+updateHeartbeatDashboard();
 
-    loadTable(result);
+/* ===============================
+    Refresh
+=============================== */
 
-});
-
-/**
- * 1초마다 현재 시간 갱신
- */
 setInterval(() => {
 
-    sampleData.forEach(item => {
+    updateUDSDashboard();
 
-        item.date = getCurrentTime();
+    updateHeartbeatDashboard();
 
-    });
-
-    loadTable(sampleData);
-
-}, 1000);
+}, 3000);
