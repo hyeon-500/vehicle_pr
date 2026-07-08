@@ -5,6 +5,7 @@ const db = require('../../config/db');
  */
 async function saveDTC(dtc) {
 
+    console.log("[HB]", ecuId);
     await db.execute(
 
         `INSERT INTO dtc_log
@@ -20,6 +21,7 @@ async function saveDTC(dtc) {
 
     );
 
+    console.log("[HB DONE]");
 }
 
 /**
@@ -27,6 +29,7 @@ async function saveDTC(dtc) {
  */
 async function existsActiveDTC(ecuId, dtcCode) {
 
+    console.log("[HB]", ecuId);
     const [rows] = await db.execute(
 
         `SELECT id
@@ -40,6 +43,7 @@ async function existsActiveDTC(ecuId, dtcCode) {
 
     );
 
+    console.log("[HB DONE]");
     return rows.length > 0;
 
 }
@@ -49,6 +53,7 @@ async function existsActiveDTC(ecuId, dtcCode) {
  */
 async function getAllDTC() {
 
+    console.log("[HB]", ecuId);
     const [rows] = await db.execute(
 
         `SELECT *
@@ -57,6 +62,7 @@ async function getAllDTC() {
 
     );
 
+    console.log("[HB DONE]");
     return rows;
 
 }
@@ -66,6 +72,7 @@ async function getAllDTC() {
  */
 async function updateHeartbeat(ecuId) {
 
+    console.log("[HB]", ecuId);
     await db.execute(
 
         `INSERT INTO heartbeat_log
@@ -82,6 +89,7 @@ async function updateHeartbeat(ecuId) {
         [ecuId]
 
     );
+    console.log("[HB DONE]");
 
 }
 
@@ -90,6 +98,7 @@ async function updateHeartbeat(ecuId) {
  */
 async function getHeartbeat() {
 
+    console.log("[HB]", ecuId);
     const [rows] = await db.execute(
 
         `SELECT
@@ -101,6 +110,7 @@ async function getHeartbeat() {
 
     );
 
+    console.log("[HB DONE]");
     return rows;
 
 }
@@ -120,6 +130,7 @@ async function checkHeartbeatTimeout() {
 
         if (diff > 3000 && ecu.status === 'CONNECTED') {
 
+            console.log("[HB]", ecuId);
             await db.execute(
 
                 `UPDATE heartbeat_log
@@ -130,6 +141,7 @@ async function checkHeartbeatTimeout() {
 
             );
 
+            console.log("[HB DONE]");
             const exists =
                 await existsActiveDTC(
                     ecu.ecu_id,
