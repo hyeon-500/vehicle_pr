@@ -2,7 +2,14 @@ const express = require('express');
 const router = express.Router();
 
 const vehicleState = require('../gateway/vehicle_state');
-const dtcService = require('../services/dtc_service');
+
+const isAws = process.env.MODE === "AWS";
+
+let dtcService = null;
+
+if (!isAws) {
+    dtcService = require('../services/dtc_service');
+}
 
 /**
  * GET /api/vehicle
@@ -27,6 +34,10 @@ router.get('/vehicle', (req, res) => {
  * DTC 목록 조회
  */
 router.get('/dtc', async (req, res) => {
+
+    if (isAws) {
+        return res.json([]);
+    }
 
     try {
 

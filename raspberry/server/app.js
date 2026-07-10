@@ -77,7 +77,14 @@ server.listen(3000, () => {
     console.log(" UART       Ready");
     console.log("=================================");
 
-    /* ECU4 UART 시작 */
-    startUartReceiver();
+    const isAws = process.env.MODE === "AWS";
+    if (!isAws) {
+        console.log(" UART Ready");
+        startUartReceiver();
+    } else {
+        console.log(" AWS Mode (UART Disabled)");
+    }
+
+    console.log("=================================");
 
 });

@@ -170,6 +170,11 @@ async function checkHeartbeatTimeout() {
 
 }
 
+
+function startHeartbeatMonitor() {
+    setInterval(checkHeartbeatTimeout,1000);
+}
+
 /* 1초마다 검사 */
 
 setInterval(checkHeartbeatTimeout,1000);
@@ -186,6 +191,8 @@ module.exports = {
 
     getHeartbeat,
 
-    checkHeartbeatTimeout
+    checkHeartbeatTimeout,
+
+    startHeartbeatMonitor
 
 };
