@@ -175,6 +175,28 @@ function startHeartbeatMonitor() {
     setInterval(checkHeartbeatTimeout,1000);
 }
 
+async function clearAllDTC() {
+
+    // STM32 Clear 명령
+    //sendDtcClearCommand();
+
+    // DB 삭제
+    await db.query(
+        "DELETE FROM dtc_log"
+    );
+
+    return {
+        success: true
+    };
+}
+
+async function getDTCList() {
+    const [rows] = await db.query(
+        "SELECT * FROM dtc_log ORDER BY id DESC"
+    );
+
+    return rows;
+}
 /* 1초마다 검사 */
 
 setInterval(checkHeartbeatTimeout,1000);
@@ -193,6 +215,10 @@ module.exports = {
 
     checkHeartbeatTimeout,
 
-    startHeartbeatMonitor
+    startHeartbeatMonitor,
+
+    clearAllDTC,
+
+    getDTCList
 
 };
