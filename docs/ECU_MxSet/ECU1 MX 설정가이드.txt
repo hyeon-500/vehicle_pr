@@ -1,0 +1,83 @@
+🌤️ ECU 1 (환경 센서 노드) STM32CubeMX 설정 가이드 (HCLK 84MHz)
+Project Name: ECU1
+
+Target MCU: STM32F446RETx
+주요 기능: DHT11(온습도) 및 BH1750(조도) 센서 데이터 수집 후 CAN 송신 (ID: 0x200) 및 OTA/제어 명령 수신
+
+1. System Core 설정
+
+SYS: Debug를 Serial Wire로 설정 (ST-LINK 디버깅용)
+
+RCC: High Speed Clock (HSE)를 Crystal/Ceramic Resonator로 설정 (외부 크리스탈 사용 시)
+
+2. Clock Configuration
+
+HCLK (최대 클럭)을 84 MHz로 설정 후 엔터 (자동 계산)
+
+이때 APB1 peripheral clocks가 42 MHz로 맞춰지는지 확인합니다. (CAN 통신 속도 계산의 기준)
+
+3. CAN1 설정 (차량 내부망)
+
+Mode: Master Mode 체크
+
+Configuration -> Parameter Settings (500 kbps 맞추기):
+
+기준 클럭: APB1 (42 MHz)
+
+Prescaler: 6
+
+Time Quanta in Bit Segment 1: 11 Times
+
+Time Quanta in Bit Segment 2: 2 Times
+
+계산식: 42MHz / 6 / (1 + 11 + 2) = 500,000 (500kbps)
+
+Configuration -> NVIC Settings :
+
+CAN1 RX0 interrupts 체크 (필수: 센서 노드이더라도 OTA 업데이트 바이너리 수신 및 UDS 진단 명령을 받기 위해 반드시 켜야 합니다.)
+
+4. I2C 설정 (BH1750 조도 센서용)
+
+I2C1 또는 I2C2 선택 (센서와 연결하기 편한 핀 선택)
+
+I2C Mode: I2C 선택
+
+Configuration -> Parameter Settings:
+
+I2C Speed Mode: Standard Mode (기본값)
+
+I2C Clock Speed: 100000 Hz (기본값)
+
+5. GPIO 설정 (DHT11 온습도 센서용)
+
+DHT11 데이터 핀을 연결할 GPIO 핀 선택 (예: PA5)
+
+핀 클릭 후 GPIO_Output 설정 (이후 코드에서 Input/Output 방향을 동적으로 변경하여 통신 구현)
+
+6. Middleware (FreeRTOS)
+
+Interface: CMSIS_V1 또는 CMSIS_V2 선택
+
+Tasks and Queues 탭:
+
+defaultTask: 이름 변경 Task_Env_Process (우선순위: osPriorityNormal)
+
+기능: 센서 데이터 수집 및 큐에 삽입
+
+Task 추가: 이름 Task_CAN_Tx (우선순위: osPriorityNormal)
+
+기능: 큐에서 데이터를 꺼내 CAN으로 송신
+
+Task 추가: 이름 Task_Heartbeat (우선순위: osPriorityRealtime 또는 Highest)
+
+기능: 주기적으로 생존 신호(0x701) CAN 송신
+
+Task 추가 (🌟 추가됨): 이름 Task_CAN_Rx (우선순위: osPriorityHigh)
+
+기능: 수신 인터럽트에서 받은 OTA 및 제어 명령 처리
+
+Queues 탭 (🌟 추가됨):
+
+Queue_CAN_Tx (Item Size: sizeof(CAN_Tx_Format))
+
+Queue_CAN_Rx (Item Size: sizeof(CAN_Rx_Format)) - OTA 데이터 수신용 큐

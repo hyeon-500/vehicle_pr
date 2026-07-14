@@ -1,0 +1,99 @@
+🏎️ ECU 2 (주행 센서 노드) STM32CubeMX 설정 가이드 (HCLK 84MHz)
+Project Name: ECU2
+
+Target MCU: STM32F446RETx
+주요 기능: 가변저항(속도) 및 HC-SR04(거리) 데이터 수집 후 CAN 송신 (ID: 0x100)
+
+1. System Core 설정
+
+SYS: Debug를 Serial Wire로 설정 (ST-LINK 디버깅용)
+
+RCC: High Speed Clock (HSE)를 Crystal/Ceramic Resonator로 설정 (외부 크리스탈 사용 시)
+
+2. Clock Configuration
+
+HCLK (최대 클럭)을 84 MHz로 설정 후 엔터 (자동 계산)
+
+이때 APB1 peripheral clocks가 42 MHz로 맞춰지는지 확인합니다. (CAN 통신 속도 계산의 기준)
+
+참고: 타이머 클럭(APB1 Timer clocks)은 84MHz로 설정됩니다. 초음파 센서 거리 계산 시 이 클럭 주파수를 기준으로 타이머 설정을 맞춥니다.
+
+3. CAN1 설정 (차량 내부망)
+
+Mode: Master Mode 체크
+
+Configuration -> Parameter Settings (500 kbps 맞추기):
+
+기준 클럭: APB1 (42 MHz)
+
+Prescaler: 6
+
+Time Quanta in Bit Segment 1: 11 Times
+
+Time Quanta in Bit Segment 2: 2 Times
+
+계산식: 42MHz / 6 / (1 + 11 + 2) = 500,000 (500kbps)
+
+Configuration -> NVIC Settings:
+
+주행 ECU도 환경 ECU처럼 송신 위주이므로 수신 인터럽트(RX0)는 필수사항이 아닙니다.
+
+4. ADC 설정 (가변저항 - 속도 측정용)
+
+ADC1 또는 ADC2 선택
+
+IN0~IN15 중 사용할 핀 선택: (예: IN0 선택 시 PA0 핀이 할당됨)
+
+Configuration -> Parameter Settings:
+
+Continuous Conversion Mode: Disable (FreeRTOS Task에서 주기적으로 읽을 것이므로 Disable 권장)
+
+나머지는 기본값 유지
+
+5. Timer 및 GPIO 설정 (HC-SR04 초음파 센서용)
+
+초음파 센서는 10us 펄스를 보내는 Trigger 핀과, 돌아오는 신호의 길이를 재는 Echo 핀이 필요합니다.
+
+Trigger 핀 (GPIO Output): * 임의의 핀(예: PA1) 좌클릭 후 GPIO_Output 설정.
+
+사용자 라벨(User Label)을 TRIG_PIN으로 지정해두면 코딩이 편합니다.
+
+Echo 핀 (Timer Input Capture):
+
+TIM2 또는 TIM3 선택 (32bit/16bit 범용 타이머)
+
+Channel 1: Input Capture direct mode 선택 (예: TIM2_CH1은 PA0이나 PA5 등에 맵핑 가능하므로 ADC 핀과 안 겹치게 주의)
+
+Configuration -> Parameter Settings:
+
+Prescaler: 84 - 1 (타이머 클럭이 84MHz이므로, 1MHz(1us) 단위로 카운트하기 위해 설정)
+
+Counter Period: 0xFFFFFFFF (TIM2 사용 시 32비트 최대값) 또는 0xFFFF
+
+Configuration -> NVIC Settings:
+
+TIM2 global interrupt 체크 (인터럽트 방식으로 펄스 폭을 측정할 경우)
+
+6. Middleware (FreeRTOS)
+
+Interface: CMSIS_V1 또는 CMSIS_V2 선택
+
+Tasks and Queues 탭:
+
+defaultTask: 이름 변경 Task_Read_Speed (우선순위: osPriorityNormal)
+
+기능: 100ms 주기로 ADC 값을 읽어 속도로 변환
+
+Task 추가: 이름 Task_Read_Dist (우선순위: osPriorityHigh)
+
+기능: 100ms 주기로 초음파 센서 Trigger를 쏘고 거리 계산
+
+Task 추가: 이름 Task_CAN_Tx (우선순위: osPriorityNormal)
+
+기능: 속도와 거리 데이터를 모아서 CAN (ID: 0x100)으로 송신
+
+Task 추가: 이름 Task_Heartbeat (우선순위: osPriorityRealtime)
+
+기능: 주기적으로 생존 신호(0x702) CAN 송신
+
+Queues 영역의 Add 버튼 클릭 -> Queue Name: Queue_CAN_Tx, Item Size: sizeof(CAN_Tx_Format)

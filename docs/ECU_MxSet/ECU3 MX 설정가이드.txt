@@ -1,0 +1,103 @@
+🚨 ECU 3 (안전 제어 노드) STM32CubeMX 설정 가이드 (HCLK 84MHz)
+Project Name: ECU3
+
+Target MCU: STM32F446RETx
+주요 기능: 수신된 제어 명령(CAN 0x010)에 따른 브레이크/와이퍼 서보모터(PWM) 구동, LCD(I2C) 출력 및 OTA 수신
+
+1. System Core 설정
+
+SYS: Debug를 Serial Wire로 설정 (ST-LINK 디버깅용)
+
+RCC: High Speed Clock (HSE)를 Crystal/Ceramic Resonator로 설정 (외부 크리스탈 사용 시)
+
+2. Clock Configuration
+
+HCLK (최대 클럭)을 84 MHz로 설정 후 엔터 (자동 계산)
+
+이때 APB1 peripheral clocks가 42 MHz로 맞춰지는지 확인합니다.
+
+참고: 타이머 클럭(APB1 Timer clocks)은 84MHz로 설정됩니다. 서보모터 PWM 주파수(50Hz) 설정 시 이 클럭 주파수를 기준으로 합니다.
+
+3. CAN1 설정 (차량 내부망)
+
+Mode: Master Mode 체크
+
+Configuration -> Parameter Settings (500 kbps 맞추기):
+
+기준 클럭: APB1 (42 MHz)
+
+Prescaler: 6
+
+Time Quanta in Bit Segment 1: 11 Times
+
+Time Quanta in Bit Segment 2: 2 Times
+
+계산식: 42MHz / 6 / (1 + 11 + 2) = 500,000 (500kbps)
+
+Configuration -> NVIC Settings:
+
+CAN1 RX0 interrupts 체크 (필수: 제어 명령 및 OTA 업데이트 데이터를 수신하기 위해 반드시 켜야 합니다.)
+
+4. Timer 설정 (서보모터 PWM 제어용)
+
+서보모터는 50Hz (주기 20ms)의 PWM 신호를 요구합니다. 타이머 2개 채널을 활성화하여 브레이크와 와이퍼를 각각 제어합니다.
+
+TIM3 또는 TIM4 선택 (범용 타이머)
+
+Channel 1: PWM Generation CH1 선택 (예: 브레이크 서보용)
+
+Channel 2: PWM Generation CH2 선택 (예: 와이퍼 서보용)
+
+Configuration -> Parameter Settings (50Hz 맞추기 🌟):
+
+Prescaler: 84 - 1 (타이머 클럭 84MHz를 1MHz(1us 단위)로 만듦)
+
+Counter Period (AutoReload Register): 20000 - 1 (1us * 20000 = 20ms 주기 = 50Hz)
+
+Pulse: 1500 (초기 Duty Cycle 설정. 1500us = 중립 위치)
+
+나머지는 기본값 유지
+
+5. I2C 설정 (16x2 Text LCD용)
+
+I2C1 또는 I2C2 선택 (예: I2C1의 경우 PB6(SCL), PB7(SDA)에 할당됨)
+
+I2C Mode: I2C 선택
+
+Configuration -> Parameter Settings:
+
+I2C Speed Mode: Standard Mode
+
+I2C Clock Speed: 100000 Hz
+
+6. Middleware (FreeRTOS)
+
+Interface: CMSIS_V1 또는 CMSIS_V2 선택
+
+Tasks and Queues 탭:
+
+defaultTask: 이름 변경 Task_Control (우선순위: osPriorityVeryHigh)
+
+기능: 수신된 제어 명령에 따라 즉시 PWM Duty 값을 변경하여 서보모터 구동
+
+Task 추가: 이름 Task_LCD_Update (우선순위: osPriorityBelowNormal)
+
+기능: 200ms 주기로 현재 차량 상태(속도, 위험도 등)를 LCD에 출력
+
+Task 추가: 이름 Task_Heartbeat (우선순위: osPriorityRealtime)
+
+기능: 주기적으로 생존 신호(0x703) CAN 송신
+
+Task 추가: 이름 Task_CAN_Rx (우선순위: osPriorityHigh)
+
+기능: 수신 인터럽트에서 받은 CAN 데이터를 분석하여 해당 큐나 플래그로 전달
+
+Queues 탭:
+
+Queue_CAN_Rx (Item Size: sizeof(CAN_Rx_Format)) - 제어 명령 수신용 큐
+
+Timers and Semaphores 탭 (🌟 매우 중요):
+
+Mutexes 영역의 Add 버튼 클릭 -> Mutex Name: Mutex_I2C
+
+이유: LCD를 그리는 도중에 다른 인터럽트나 태스크가 I2C를 점유하여 통신이 꼬이는 현상을 막기 위해 사용합니다. (Priority Inversion 방지 기능 포함)

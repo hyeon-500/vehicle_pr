@@ -1,0 +1,68 @@
+🛠️ ECU 4 (Gateway) STM32CubeMX 설정 가이드 (HCLK 84MHz)
+Project Name: ECU4
+
+Target MCU: STM32F446RE
+
+1. System Core 설정
+
+SYS: Debug를 Serial Wire로 설정 (ST-LINK 디버깅용)
+
+RCC: High Speed Clock (HSE)를 Crystal/Ceramic Resonator로 설정 (외부 크리스탈 사용 시)
+
+2. Clock Configuration (수정됨)
+
+HCLK (최대 클럭)을 84 MHz로 설정 후 엔터 (자동 계산)
+
+이때 APB1 peripheral clocks가 42 MHz로 맞춰지는지 확인합니다. (CAN 통신 속도 계산의 기준이 됩니다.)
+
+3. CAN1 설정 (차량 내부망)
+
+Mode: Master Mode 체크
+
+Configuration -> Parameter Settings (500 kbps 맞추기 수정됨):
+
+기준 클럭: APB1 (42 MHz)
+
+Prescaler: 6
+
+Time Quanta in Bit Segment 1: 11 Times
+
+Time Quanta in Bit Segment 2: 2 Times
+
+계산식: 42MHz / 6 / (1 + 11 + 2) = 42,000,000 / 84 = 500,000 (500kbps)
+
+Configuration -> NVIC Settings:
+
+CAN1 RX0 interrupts 체크 (수신 인터럽트 활성화)
+
+4. USART 설정 (ESP32 통신용) - 변경 없음
+
+USART1 또는 USART3 선택 (ESP32와 핀 연결이 편한 포트 선택)
+
+Mode: Asynchronous
+
+Baud Rate: 115200 bps (CubeMX가 변경된 클럭에 맞춰 내부 레지스터를 자동 계산합니다.)
+
+Configuration -> DMA Settings:
+
+Add 버튼 클릭 -> USARTx_TX 추가 (방향: Memory To Peripheral)
+
+Priority: High
+
+5. Middleware (FreeRTOS) - 변경 없음
+
+Interface: CMSIS_V1 또는 CMSIS_V2 선택 (이 부분을 설정해야 아래 탭들이 활성화됩니다)
+
+Tasks and Queues 탭:
+
+defaultTask: 이름 변경 Task_CAN_Process (우선순위: osPriorityHigh)
+
+Task_UART_Process : (우선순위: osPriorityNormal) (UART 수신 -> CAN 송신 역할)
+
+Task_Heartbeat : (우선순위: osPriorityRow) (주기적으로 0x704 송신 역할)
+
+Queues 영역의 Add 버튼 클릭 -> Queue Name: Queue_CAN_Rx, Item Size: sizeof(CAN_Rx_Format) (약 12바이트)
+
+Timers and Semaphores 탭:
+
+Binary Semaphores 영역의 Add 버튼 클릭 -> Semaphore Name: Sem_UART_Rx
